@@ -6,6 +6,7 @@ from board.adapter.input.web.board_router import board_router
 from config.database.session import Base, engine
 from documents.adapter.input.web.documents_router import documents_router
 from documents_multi_agents.adapter.input.web.document_multi_agent_router import documents_multi_agents_router
+from news.adapter.input.web.news_router import news_router
 from social_oauth.adapter.input.web.google_oauth2_router import authentication_router
 
 load_dotenv()
@@ -31,6 +32,7 @@ app.include_router(anonymous_board_router, prefix="/anonymouse-board")
 app.include_router(authentication_router, prefix="/authentication")
 app.include_router(board_router, prefix="/board")
 app.include_router(documents_router, prefix="/documents")
+app.include_router(news_router, prefix="/news")
 app.include_router(documents_multi_agents_router, prefix="/documents-multi-agents")
 
 # 앱 실행
