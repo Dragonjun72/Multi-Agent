@@ -6,3 +6,7 @@ pdfplumber
 python-docx
 beautifulsoup4
 aiohttp
+sqlalchemy
+pymysql
+python-dotenv
+requests
