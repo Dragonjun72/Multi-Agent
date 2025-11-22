@@ -1,15 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Iterable
+from typing import List, Protocol
 
 from news.domain.news import News
 
 
-class NewsRepositoryPort(ABC):
+class NewsRepositoryPort(Protocol):
+    def upsert_many(self, news_list: List[News]) -> List[News]:
+        ...
 
-    @abstractmethod
-    def create_news(self, title: str, content: str) -> News:
-        raise NotImplementedError
-
-    @abstractmethod
-    def list_news(self) -> Iterable[News]:
-        raise NotImplementedError
+    def list_latest(self, limit: int = 20) -> List[News]:
+        ...

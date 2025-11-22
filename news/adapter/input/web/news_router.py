@@ -1,37 +1,37 @@
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from news.adapter.input.web.request.create_news_request import CreateNewsRequest
-from news.adapter.input.web.response.news_response import NewsListResponse, NewsResponse
+from config.database.session import get_db_session_dependency
+from news.adapter.input.web.request.news_fetch_request import NewsFetchRequest
+from news.adapter.input.web.response.news_item_response import NewsItemResponse
 from news.application.usecase.news_usecase import NewsUseCase
+from news.infrastructure.api.naver_news_client import NaverNewsClient
 from news.infrastructure.repository.news_repository_impl import NewsRepositoryImpl
 
 news_router = APIRouter(tags=["news"])
-news_usecase = NewsUseCase(NewsRepositoryImpl())
 
 
-@news_router.post("/create", response_model=NewsResponse)
-def create_news(payload: CreateNewsRequest) -> NewsResponse:
-    news = news_usecase.create_news(payload.title, payload.content)
-    return NewsResponse(
-        id=news.id,
-        title=news.title,
-        content=news.content,
-        created_at=news.created_at,
-    )
+def get_news_usecase(session: Session = Depends(get_db_session_dependency)) -> NewsUseCase:
+    client = NaverNewsClient()
+    repository = NewsRepositoryImpl(session)
+    return NewsUseCase(client, repository)
 
 
-@news_router.get("/list", response_model=NewsListResponse)
-def list_news() -> NewsListResponse:
-    news_list = news_usecase.list_news()
-    items: List[NewsResponse] = [
-        NewsResponse(
-            id=news.id,
-            title=news.title,
-            content=news.content,
-            created_at=news.created_at,
-        )
-        for news in news_list
-    ]
-    return NewsListResponse(items=items)
+@news_router.post("/fetch", response_model=List[NewsItemResponse])
+async def fetch_news(payload: NewsFetchRequest, usecase: NewsUseCase = Depends(get_news_usecase)):
+    try:
+        return usecase.fetch_and_store(payload.query, payload.display, payload.sort)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@news_router.get("/list", response_model=List[NewsItemResponse])
+async def list_news(limit: int = 20, usecase: NewsUseCase = Depends(get_news_usecase)):
+    try:
+        return usecase.get_latest(limit)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
